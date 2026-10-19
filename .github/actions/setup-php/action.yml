@@ -1,0 +1,25 @@
+name: Setup PHP
+description: Setup PHP with extensions.
+
+inputs:
+  php-version:
+    description: The PHP version to set up
+    required: true
+  extensions:
+    description: PHP extensions to set up
+    required: false
+    default: ''
+  tools:
+    description: PHP tools to set up
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ inputs.php-version }}
+        extensions: ${{ inputs.extensions }}
+        tools: ${{ inputs.tools }}
