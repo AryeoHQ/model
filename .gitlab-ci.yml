@@ -1,0 +1,70 @@
+# Tests aryeo/model and publishes it to the Artifactory Composer repository.
+#
+# aryeo/model is AryeoHQ's fork of jenssegers/model, kept for Laravel 13 support (upstream
+# supports up to Laravel 12). It replaces jenssegers/model, so requiring it satisfies packages
+# that still require the upstream name.
+#
+# It is a plain PHPUnit package, not a Testbench one, so it runs only the tests and a
+# composer.json check; the template's Pint, PHPStan and dependency-analysis jobs do not apply.
+# A semver tag push (e.g. 1.5.5) then packages the tagged source and publishes it.
+#
+# The job scripts come from the shared template.
+include:
+  - project: vendor-platform/ci_cd/gitlab-ci-templates
+    ref: main
+    file: php-composer-package.yml
+
+stages:
+  - test
+  - package
+  - publish
+
+default:
+  tags:
+    - build
+  interruptible: true
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - if: $CI_COMMIT_BRANCH
+    - if: $CI_COMMIT_TAG
+
+# No composer.lock, so each leg resolves the newest dependencies for its Laravel version.
+tests:
+  stage: test
+  extends: .php-tests
+  variables:
+    TEST_COMMAND: ./vendor/bin/phpunit
+  parallel:
+    matrix:
+      - COMPOSER_REQUIRE: "illuminate/contracts:12.* illuminate/support:12.*"
+      - COMPOSER_REQUIRE: "illuminate/contracts:13.* illuminate/support:13.*"
+
+# Runs without installing dependencies. A job without rules is left out of merge request
+# pipelines, so list every pipeline it should run in.
+validate:
+  stage: test
+  image: $PHP_IMAGE
+  script:
+    - composer validate --no-check-lock
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH
+    - if: $CI_COMMIT_TAG
+
+package:
+  stage: package
+  extends: .package
+  needs: [tests, validate]
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v?\d+\.\d+\.\d+$/
+
+publish:
+  stage: publish
+  extends: .publish
+  needs: [package]
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v?\d+\.\d+\.\d+$/

@@ -20,11 +20,16 @@ You can read more about these features and the original Eloquent model on http:/
 Installation
 ------------
 
-Install using composer:
+This is AryeoHQ's fork of `jenssegers/model`, with Laravel 13 support. It is published to the
+Aryeo Composer repository in Artifactory, not Packagist, so add that repository first:
 
 ```bash
-composer require jenssegers/model
+composer config repositories.aryeo '{"type": "composer", "url": "https://artifactory.zgtools.net/artifactory/api/composer/listing-and-vendor-management-composer/", "only": ["aryeo/*", "zillow/*"]}'
+composer require aryeo/model
 ```
+
+The package replaces `jenssegers/model`, so packages that require the upstream name get this
+fork instead.
 
 Example
 -------
